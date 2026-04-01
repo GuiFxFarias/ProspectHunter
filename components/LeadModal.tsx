@@ -180,7 +180,24 @@ export const LeadModal: React.FC<LeadModalProps> = ({
               Detalhes do lead
             </h2>
             <p className="mt-1 text-xs text-zinc-600">
-              {lead.empresa} — {lead.contato_nome}
+              {lead.empresa}
+            </p>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              {lead.contato_nome}
+              {lead.email && (
+                <>
+                  {" · "}
+                  <span className="underline decoration-dotted">
+                    {lead.email}
+                  </span>
+                </>
+              )}
+              {lead.telefone && (
+                <>
+                  {" · "}
+                  <span>{lead.telefone}</span>
+                </>
+              )}
             </p>
           </div>
         </div>
