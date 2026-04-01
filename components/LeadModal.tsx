@@ -7,6 +7,8 @@ interface LeadModalProps {
   open: boolean;
   onClose: () => void;
   onSaved: () => Promise<void> | void;
+  onLeadUpdated?: (lead: Lead) => void;
+  onLeadDeleted?: (id: string) => void;
 }
 
 const RESULTADOS: { value: InteractionResultado; label: string }[] = [
@@ -22,6 +24,8 @@ export const LeadModal: React.FC<LeadModalProps> = ({
   open,
   onClose,
   onSaved,
+  onLeadUpdated,
+  onLeadDeleted,
 }) => {
   const [resultado, setResultado] = useState<InteractionResultado>("nao_atendeu");
   const [observacao, setObservacao] = useState("");
@@ -142,6 +146,15 @@ export const LeadModal: React.FC<LeadModalProps> = ({
       }
 
       setEditingLead(false);
+      const updatedLead: Lead = {
+        ...lead,
+        empresa: editEmpresa,
+        contato_nome: editContato,
+        telefone: editTelefone || null,
+        email: editEmail || null,
+        produto: editProduto || null,
+      };
+      onLeadUpdated?.(updatedLead);
       await onSaved();
     } catch (err: any) {
       setError(err.message || "Erro ao atualizar lead");
@@ -177,6 +190,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
       }
 
       onClose();
+      onLeadDeleted?.(lead.id);
       await onSaved();
     } catch (err: any) {
       setError(err.message || "Erro ao excluir lead");

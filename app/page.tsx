@@ -77,6 +77,21 @@ export default function Home() {
     setLoading(false);
   };
 
+  const refreshLeads = async () => {
+    // Atualiza apenas a lista, sem mexer no loading global
+    const { data, error } = await supabase
+      .from("leads")
+      .select("*")
+      .order("proxima_acao_em", { ascending: true });
+
+    if (error) {
+      setError(error.message);
+      setLeads([]);
+    } else {
+      setLeads((data as Lead[]) ?? []);
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
@@ -433,7 +448,15 @@ export default function Home() {
         lead={selectedLead}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={loadLeads}
+        onSaved={refreshLeads}
+        onLeadUpdated={(updated) =>
+          setLeads((current) =>
+            current.map((l) => (l.id === updated.id ? { ...l, ...updated } : l))
+          )
+        }
+        onLeadDeleted={(id) =>
+          setLeads((current) => current.filter((l) => l.id !== id))
+        }
       />
     </div>
   );
