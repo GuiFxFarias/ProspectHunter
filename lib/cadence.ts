@@ -23,7 +23,8 @@ export interface Lead {
   fase_cadencia: number;
   tentativas_no_dia: number;
   proxima_acao_em: string | null; // ISO string from Supabase
-   owner_id?: string | null;
+  owner_id?: string | null;
+  origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
   created_at: string;
   updated_at: string;
 }

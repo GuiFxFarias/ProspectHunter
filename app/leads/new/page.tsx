@@ -12,6 +12,9 @@ export default function NewLeadPage() {
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [produto, setProduto] = useState("");
+  const [origem, setOrigem] = useState<
+    "SDR" | "Indicacao" | "Prospeccao" | "Rebote"
+  >("Prospeccao");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +50,7 @@ export default function NewLeadPage() {
           telefone,
           email,
           produto,
+          origem,
         }),
       });
 
@@ -156,6 +160,30 @@ export default function NewLeadPage() {
                 className="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-zinc-800">
+              Origem do lead
+            </label>
+            <select
+              value={origem}
+              onChange={(e) =>
+                setOrigem(
+                  e.target.value as
+                    | "SDR"
+                    | "Indicacao"
+                    | "Prospeccao"
+                    | "Rebote"
+                )
+              }
+              className="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            >
+              <option value="SDR">SDR</option>
+              <option value="Indicacao">Indicação</option>
+              <option value="Prospeccao">Prospecção</option>
+              <option value="Rebote">Rebote</option>
+            </select>
           </div>
 
           <div className="flex justify-end">

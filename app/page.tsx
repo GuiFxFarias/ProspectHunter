@@ -342,7 +342,7 @@ export default function Home() {
                     <th className="px-4 py-2">Fase</th>
                     <th className="px-4 py-2">Tentativas hoje</th>
                     <th className="px-4 py-2">Próxima ação</th>
-                    <th className="px-4 py-2">Categoria</th>
+                    <th className="px-4 py-2">Origem</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 text-[11px] text-zinc-800">
@@ -404,18 +404,8 @@ export default function Home() {
                         </td>
                         <td className="px-4 py-2 text-zinc-700">{proxima}</td>
                         <td className="px-4 py-2">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              categoria === "Atrasado"
-                                ? "bg-red-50 text-red-700"
-                                : categoria === "Hoje"
-                                ? "bg-amber-50 text-amber-700"
-                                : categoria === "Próximo"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-zinc-50 text-zinc-600"
-                            }`}
-                          >
-                            categoria
+                          <span className="inline-flex rounded-full bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
+                            {lead.origem || "—"}
                           </span>
                         </td>
                       </tr>

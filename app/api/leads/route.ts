@@ -12,12 +12,20 @@ export async function POST(request: Request) {
     const supabase = createServerSupabaseClient(accessToken);
 
     const body = await request.json();
-    const { empresa, contato_nome, telefone, email, produto } = body as {
+    const {
+      empresa,
+      contato_nome,
+      telefone,
+      email,
+      produto,
+      origem,
+    } = body as {
       empresa?: string;
       contato_nome?: string;
       telefone?: string;
       email?: string;
       produto?: string;
+      origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
     };
 
     if (!empresa || !contato_nome) {
@@ -47,6 +55,7 @@ export async function POST(request: Request) {
       telefone: telefone ?? null,
       email: email ?? null,
       produto: produto ?? null,
+      origem: origem ?? "Prospeccao",
       status: cadence.status,
       fase_cadencia: cadence.fase_cadencia,
       tentativas_no_dia: cadence.tentativas_no_dia,
