@@ -1,11 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 
-interface RouteParams {
-  params: { id: string };
-}
-
-export async function PATCH(request: Request, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const authHeader = request.headers.get("authorization");
     const accessToken = authHeader?.startsWith("Bearer ")
@@ -13,7 +12,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       : undefined;
 
     const supabase = createServerSupabaseClient(accessToken);
-    const id = params.id;
+    const { id } = await context.params;
 
     const body = await request.json();
     const {
@@ -57,7 +56,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     const authHeader = request.headers.get("authorization");
     const accessToken = authHeader?.startsWith("Bearer ")
@@ -65,7 +67,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       : undefined;
 
     const supabase = createServerSupabaseClient(accessToken);
-    const id = params.id;
+    const { id } = await context.params;
 
     const { error } = await supabase.from("leads").delete().eq("id", id);
 
