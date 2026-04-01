@@ -44,12 +44,30 @@ export const LeadModal: React.FC<LeadModalProps> = ({
   const [savingCadence, setSavingCadence] = useState(false);
   const [customNextAction, setCustomNextAction] = useState<string>("");
   const [meetingDateTime, setMeetingDateTime] = useState<string>("");
+  const [editingLead, setEditingLead] = useState(false);
+  const [editEmpresa, setEditEmpresa] = useState("");
+  const [editContato, setEditContato] = useState("");
+  const [editTelefone, setEditTelefone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editProduto, setEditProduto] = useState("");
+  const [editOrigem, setEditOrigem] = useState<
+    "SDR" | "Indicacao" | "Prospeccao" | "Rebote" | ""
+  >("");
+  const [savingLead, setSavingLead] = useState(false);
+  const [deletingLead, setDeletingLead] = useState(false);
 
   useEffect(() => {
     if (!lead || !open) return;
 
+    setEditingLead(false);
     setEditFase(lead.fase_cadencia);
     setEditTentativas(lead.tentativas_no_dia);
+    setEditEmpresa(lead.empresa);
+    setEditContato(lead.contato_nome);
+    setEditTelefone(lead.telefone ?? "");
+    setEditEmail(lead.email ?? "");
+    setEditProduto(lead.produto ?? "");
+    setEditOrigem(((lead as any).origem as any) ?? "");
     if (lead.proxima_acao_em) {
       const d = new Date(lead.proxima_acao_em);
       const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
@@ -89,6 +107,83 @@ export const LeadModal: React.FC<LeadModalProps> = ({
 
     loadHistory();
   }, [lead, open]);
+
+  const handleSaveLead = async () => {
+    if (!lead) return;
+    setSavingLead(true);
+    setError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: session?.access_token
+            ? `Bearer ${session.access_token}`
+            : "",
+        },
+        body: JSON.stringify({
+          empresa: editEmpresa,
+          contato_nome: editContato,
+          telefone: editTelefone,
+          email: editEmail,
+          produto: editProduto,
+          origem: editOrigem || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Erro ao atualizar lead");
+      }
+
+      setEditingLead(false);
+      await onSaved();
+    } catch (err: any) {
+      setError(err.message || "Erro ao atualizar lead");
+    } finally {
+      setSavingLead(false);
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!lead) return;
+    if (!window.confirm("Tem certeza que deseja excluir este lead?")) return;
+
+    setDeletingLead(true);
+    setError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: session?.access_token
+            ? `Bearer ${session.access_token}`
+            : "",
+        },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Erro ao excluir lead");
+      }
+
+      onClose();
+      await onSaved();
+    } catch (err: any) {
+      setError(err.message || "Erro ao excluir lead");
+    } finally {
+      setDeletingLead(false);
+    }
+  };
   const handleUpdateCadence = async () => {
     if (!lead || editFase == null || editTentativas == null) return;
     setSavingCadence(true);
@@ -171,34 +266,142 @@ export const LeadModal: React.FC<LeadModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-xl bg-white px-6 py-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white px-6 py-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
+          <div className="flex-1">
             <h2 className="text-base font-semibold text-zinc-900">
               Detalhes do lead
             </h2>
-            <p className="mt-1 text-xs text-zinc-600">
-              {lead.empresa}
-            </p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
-              {lead.contato_nome}
-              {lead.email && (
-                <>
-                  {" · "}
-                  <span className="underline decoration-dotted">
-                    {lead.email}
-                  </span>
-                </>
-              )}
-              {lead.telefone && (
-                <>
-                  {" · "}
-                  <span>{lead.telefone}</span>
-                </>
-              )}
-            </p>
+            {editingLead ? (
+              <div className="mt-2 grid gap-2 text-[11px] text-zinc-700 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="font-medium text-zinc-800">Empresa</label>
+                  <input
+                    type="text"
+                    value={editEmpresa}
+                    onChange={(e) => setEditEmpresa(e.target.value)}
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-zinc-800">Contato</label>
+                  <input
+                    type="text"
+                    value={editContato}
+                    onChange={(e) => setEditContato(e.target.value)}
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-zinc-800">Telefone</label>
+                  <input
+                    type="text"
+                    value={editTelefone}
+                    onChange={(e) => setEditTelefone(e.target.value)}
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-medium text-zinc-800">E-mail</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">Produto</label>
+                  <input
+                    type="text"
+                    value={editProduto}
+                    onChange={(e) => setEditProduto(e.target.value)}
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">Origem</label>
+                  <select
+                    value={editOrigem}
+                    onChange={(e) =>
+                      setEditOrigem(
+                        e.target.value as
+                          | "SDR"
+                          | "Indicacao"
+                          | "Prospeccao"
+                          | "Rebote"
+                          | ""
+                      )
+                    }
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  >
+                    <option value="">(sem alteração)</option>
+                    <option value="SDR">SDR</option>
+                    <option value="Indicacao">Indicação</option>
+                    <option value="Prospeccao">Prospecção</option>
+                    <option value="Rebote">Rebote</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveLead}
+                    disabled={savingLead}
+                    className="mt-2 inline-flex rounded-md bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+                  >
+                    {savingLead ? "Salvando lead..." : "Salvar lead"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="mt-1 text-xs text-zinc-600">{lead.empresa}</p>
+                <p className="mt-0.5 text-[11px] text-zinc-500">
+                  {lead.contato_nome}
+                  {lead.email && (
+                    <>
+                      {" · "}
+                      <span className="underline decoration-dotted">
+                        {lead.email}
+                      </span>
+                    </>
+                  )}
+                  {lead.telefone && (
+                    <>
+                      {" · "}
+                      <span>{lead.telefone}</span>
+                    </>
+                  )}
+                  {lead.produto && (
+                    <>
+                      {" · "}
+                      <span className="italic text-zinc-600">
+                        Produto: {lead.produto}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </>
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => setEditingLead((prev) => !prev)}
+              className="rounded-md border border-zinc-300 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              {editingLead ? "Cancelar edição" : "Editar lead"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteLead}
+              disabled={deletingLead}
+              className="rounded-md border border-red-200 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+            >
+              {deletingLead ? "Excluindo..." : "Excluir lead"}
+            </button>
           </div>
         </div>
 
