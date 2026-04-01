@@ -55,6 +55,10 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [ownerFilter, setOwnerFilter] = useState<string>("todos");
+  const [owners, setOwners] = useState<{ id: string; nome: string | null }[]>(
+    []
+  );
 
   const loadLeads = async () => {
     setLoading(true);
@@ -74,11 +78,19 @@ export default function Home() {
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) {
         router.push("/auth/login");
-      } else {
-        loadLeads();
+        return;
+      }
+
+      await loadLeads();
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome");
+      if (profiles) {
+        setOwners(profiles as { id: string; nome: string | null }[]);
       }
     });
   }, [router]);
@@ -105,6 +117,11 @@ export default function Home() {
         const to = new Date(dateTo).getTime();
         if (ts > to) return false;
       }
+    }
+
+    // Owner filter
+    if (ownerFilter !== "todos") {
+      if (lead.owner_id !== ownerFilter) return false;
     }
 
     return true;
@@ -236,6 +253,22 @@ export default function Home() {
                       Limpar datas
                     </button>
                   )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-600">Responsável:</span>
+                  <select
+                    value={ownerFilter}
+                    onChange={(e) => setOwnerFilter(e.target.value)}
+                    className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  >
+                    <option value="todos">Todos</option>
+                    {owners.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nome || `User ${o.id.slice(0, 8)}`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
