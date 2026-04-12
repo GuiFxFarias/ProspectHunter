@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import type { Lead, InteractionResultado } from "@/lib/cadence";
+import type { Lead, InteractionResultado, LeadStatus } from "@/lib/cadence";
 import { supabase } from "@/lib/supabase";
 
 interface LeadModalProps {
@@ -17,6 +17,14 @@ const RESULTADOS: { value: InteractionResultado; label: string }[] = [
   { value: "pedir_email", label: "Pedir e-mail" },
   { value: "reuniao_agendada", label: "Reunião agendada" },
   { value: "sem_interesse", label: "Sem interesse" },
+];
+
+const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
+  { value: "novo", label: "Novo" },
+  { value: "em_cadencia", label: "Em cadência" },
+  { value: "aguardando", label: "Aguardando" },
+  { value: "reuniao_marcada", label: "Agenda marcada" },
+  { value: "perdido", label: "Perdido" },
 ];
 
 export const LeadModal: React.FC<LeadModalProps> = ({
@@ -57,6 +65,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
   const [editOrigem, setEditOrigem] = useState<
     "SDR" | "Indicacao" | "Prospeccao" | "Rebote" | ""
   >("");
+  const [editStatus, setEditStatus] = useState<LeadStatus>("novo");
   const [savingLead, setSavingLead] = useState(false);
   const [deletingLead, setDeletingLead] = useState(false);
 
@@ -72,6 +81,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
     setEditEmail(lead.email ?? "");
     setEditProduto(lead.produto ?? "");
     setEditOrigem(((lead as any).origem as any) ?? "");
+    setEditStatus(lead.status);
     if (lead.proxima_acao_em) {
       const d = new Date(lead.proxima_acao_em);
       const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
@@ -137,6 +147,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
           email: editEmail,
           produto: editProduto,
           origem: editOrigem || undefined,
+          status: editStatus,
         }),
       });
 
@@ -153,6 +164,10 @@ export const LeadModal: React.FC<LeadModalProps> = ({
         telefone: editTelefone || null,
         email: editEmail || null,
         produto: editProduto || null,
+        status: editStatus,
+        ...(editOrigem
+          ? { origem: editOrigem as Lead["origem"] }
+          : {}),
       };
       onLeadUpdated?.(updatedLead);
       await onSaved();
@@ -336,6 +351,22 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                   />
                 </div>
                 <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) =>
+                      setEditStatus(e.target.value as LeadStatus)
+                    }
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  >
+                    {STATUS_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1 md:col-span-2">
                   <label className="font-medium text-zinc-800">Origem</label>
                   <select
                     value={editOrigem}
@@ -423,7 +454,12 @@ export const LeadModal: React.FC<LeadModalProps> = ({
           <div className="space-y-3 text-xs text-zinc-500">
             <div className="space-y-1">
               <span className="block">
-                Status: {lead.status}
+                Status:{" "}
+                {editingLead
+                  ? STATUS_OPTIONS.find((o) => o.value === editStatus)?.label ??
+                    editStatus
+                  : STATUS_OPTIONS.find((o) => o.value === lead.status)
+                      ?.label ?? lead.status}
               </span>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1">

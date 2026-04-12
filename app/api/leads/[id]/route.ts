@@ -22,6 +22,7 @@ export async function PATCH(
       email,
       produto,
       origem,
+      status,
     } = body as {
       empresa?: string;
       contato_nome?: string;
@@ -29,6 +30,12 @@ export async function PATCH(
       email?: string;
       produto?: string;
       origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
+      status?:
+        | "novo"
+        | "em_cadencia"
+        | "aguardando"
+        | "reuniao_marcada"
+        | "perdido";
     };
 
     const { error } = await supabase
@@ -40,6 +47,7 @@ export async function PATCH(
         ...(email !== undefined && { email }),
         ...(produto !== undefined && { produto }),
         ...(origem !== undefined && { origem }),
+        ...(status !== undefined && { status }),
       })
       .eq("id", id);
 
