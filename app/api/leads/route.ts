@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       email,
       produto,
       origem,
+      categoria_lead,
     } = body as {
       empresa?: string;
       contato_nome?: string;
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
       email?: string;
       produto?: string;
       origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
+      categoria_lead?: "novo" | "antigo";
     };
 
     if (!empresa || !contato_nome) {
@@ -49,6 +51,11 @@ export async function POST(request: Request) {
 
     const cadence = initialCadenceState();
 
+    const categoria =
+      categoria_lead === "antigo" || categoria_lead === "novo"
+        ? categoria_lead
+        : "novo";
+
     const { error } = await supabase.from("leads").insert({
       empresa,
       contato_nome,
@@ -56,6 +63,7 @@ export async function POST(request: Request) {
       email: email ?? null,
       produto: produto ?? null,
       origem: origem ?? "Prospeccao",
+      categoria_lead: categoria,
       status: cadence.status,
       fase_cadencia: cadence.fase_cadencia,
       tentativas_no_dia: cadence.tentativas_no_dia,

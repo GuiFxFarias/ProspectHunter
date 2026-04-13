@@ -357,6 +357,7 @@ export default function Home() {
                     <th className="px-4 py-2">Fase</th>
                     <th className="px-4 py-2">Tentativas hoje</th>
                     <th className="px-4 py-2">Próxima ação</th>
+                    <th className="px-4 py-2">Novo / antigo</th>
                     <th className="px-4 py-2">Origem</th>
                   </tr>
                 </thead>
@@ -420,6 +421,15 @@ export default function Home() {
                         <td className="px-4 py-2 text-zinc-700">{proxima}</td>
                         <td className="px-4 py-2">
                           <span className="inline-flex rounded-full bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
+                            {lead.categoria_lead === "antigo"
+                              ? "Antigo"
+                              : lead.categoria_lead === "novo"
+                                ? "Novo"
+                                : "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="inline-flex rounded-full bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-700">
                             {lead.origem || "—"}
                           </span>
                         </td>
@@ -431,7 +441,7 @@ export default function Home() {
                       <tr>
                         <td
                           className="px-4 py-4 text-center text-xs text-zinc-500"
-                          colSpan={8}
+                          colSpan={9}
                         >
                           Nenhum lead com ação agendada.
                         </td>

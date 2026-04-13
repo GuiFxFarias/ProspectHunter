@@ -12,6 +12,9 @@ export type InteractionResultado =
   | "sem_interesse"
   | "reuniao_agendada";
 
+/** Lead novo vs lead antigo (base de contatos), distinto do status do pipeline. */
+export type LeadCategoria = "novo" | "antigo";
+
 export interface Lead {
   id: string;
   empresa: string;
@@ -25,6 +28,7 @@ export interface Lead {
   proxima_acao_em: string | null; // ISO string from Supabase
   owner_id?: string | null;
   origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
+  categoria_lead?: LeadCategoria | null;
   created_at: string;
   updated_at: string;
 }

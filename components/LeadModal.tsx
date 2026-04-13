@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import type { Lead, InteractionResultado, LeadStatus } from "@/lib/cadence";
+import type {
+  Lead,
+  LeadCategoria,
+  InteractionResultado,
+  LeadStatus,
+} from "@/lib/cadence";
 import { supabase } from "@/lib/supabase";
 
 interface LeadModalProps {
@@ -25,6 +30,11 @@ const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "aguardando", label: "Aguardando" },
   { value: "reuniao_marcada", label: "Agenda marcada" },
   { value: "perdido", label: "Perdido" },
+];
+
+const CATEGORIA_OPTIONS: { value: LeadCategoria; label: string }[] = [
+  { value: "novo", label: "Lead novo" },
+  { value: "antigo", label: "Lead antigo" },
 ];
 
 export const LeadModal: React.FC<LeadModalProps> = ({
@@ -65,6 +75,8 @@ export const LeadModal: React.FC<LeadModalProps> = ({
   const [editOrigem, setEditOrigem] = useState<
     "SDR" | "Indicacao" | "Prospeccao" | "Rebote" | ""
   >("");
+  const [editCategoriaLead, setEditCategoriaLead] =
+    useState<LeadCategoria>("novo");
   const [editStatus, setEditStatus] = useState<LeadStatus>("novo");
   const [savingLead, setSavingLead] = useState(false);
   const [deletingLead, setDeletingLead] = useState(false);
@@ -81,6 +93,8 @@ export const LeadModal: React.FC<LeadModalProps> = ({
     setEditEmail(lead.email ?? "");
     setEditProduto(lead.produto ?? "");
     setEditOrigem(((lead as any).origem as any) ?? "");
+    const cat = lead.categoria_lead;
+    setEditCategoriaLead(cat === "antigo" || cat === "novo" ? cat : "novo");
     setEditStatus(lead.status);
     if (lead.proxima_acao_em) {
       const d = new Date(lead.proxima_acao_em);
@@ -147,6 +161,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
           email: editEmail,
           produto: editProduto,
           origem: editOrigem || undefined,
+          categoria_lead: editCategoriaLead,
           status: editStatus,
         }),
       });
@@ -168,6 +183,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
         ...(editOrigem
           ? { origem: editOrigem as Lead["origem"] }
           : {}),
+        categoria_lead: editCategoriaLead,
       };
       onLeadUpdated?.(updatedLead);
       await onSaved();
@@ -367,6 +383,24 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                   </select>
                 </div>
                 <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">
+                    Lead novo ou antigo
+                  </label>
+                  <select
+                    value={editCategoriaLead}
+                    onChange={(e) =>
+                      setEditCategoriaLead(e.target.value as LeadCategoria)
+                    }
+                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  >
+                    {CATEGORIA_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1 md:col-span-2">
                   <label className="font-medium text-zinc-800">Origem</label>
                   <select
                     value={editOrigem}
@@ -426,6 +460,22 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                         Produto: {lead.produto}
                       </span>
                     </>
+                  )}
+                </p>
+                <p className="mt-1 text-[11px] text-zinc-600">
+                  {lead.categoria_lead === "antigo" ||
+                  lead.categoria_lead === "novo" ? (
+                    <>
+                      <span className="font-medium text-zinc-700">
+                        {CATEGORIA_OPTIONS.find(
+                          (o) => o.value === lead.categoria_lead
+                        )?.label ?? lead.categoria_lead}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-zinc-500">
+                      Classificação não informada
+                    </span>
                   )}
                 </p>
               </>

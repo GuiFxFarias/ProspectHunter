@@ -22,6 +22,7 @@ export async function PATCH(
       email,
       produto,
       origem,
+      categoria_lead,
       status,
     } = body as {
       empresa?: string;
@@ -30,6 +31,7 @@ export async function PATCH(
       email?: string;
       produto?: string;
       origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
+      categoria_lead?: "novo" | "antigo";
       status?:
         | "novo"
         | "em_cadencia"
@@ -47,6 +49,7 @@ export async function PATCH(
         ...(email !== undefined && { email }),
         ...(produto !== undefined && { produto }),
         ...(origem !== undefined && { origem }),
+        ...(categoria_lead !== undefined && { categoria_lead }),
         ...(status !== undefined && { status }),
       })
       .eq("id", id);
