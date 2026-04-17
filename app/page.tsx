@@ -312,7 +312,7 @@ export default function Home() {
                   >
                     <option value="todos">Todos</option>
                     <option value="em_cadencia">Em cadência</option>
-                    <option value="aguardando">Aguardando</option>
+                    <option value="aguardando">Email enviando</option>
                     <option value="reuniao_marcada">Agenda marcada</option>
                     <option value="perdido">Perdido</option>
                     <option value="novo">Novo</option>
