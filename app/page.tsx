@@ -59,6 +59,10 @@ export default function Home() {
   const [owners, setOwners] = useState<{ id: string; nome: string | null }[]>(
     []
   );
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<Lead["status"]>("em_cadencia");
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const loadLeads = async () => {
     setLoading(true);
@@ -110,6 +114,12 @@ export default function Home() {
     });
   }, [router]);
 
+  useEffect(() => {
+    setSelectedLeadIds((current) =>
+      current.filter((id) => leads.some((lead) => lead.id === id))
+    );
+  }, [leads]);
+
   const filteredLeads = leads.filter((lead) => {
     // Status filter
     if (statusFilter === "com_agenda") {
@@ -143,6 +153,13 @@ export default function Home() {
   });
 
   const { overdue, dueToday, upcoming } = categorizeLeads(filteredLeads);
+  const displayedLeads =
+    statusFilter === "com_agenda"
+      ? [...overdue, ...dueToday, ...upcoming]
+      : filteredLeads;
+  const allDisplayedSelected =
+    displayedLeads.length > 0 &&
+    displayedLeads.every((lead) => selectedLeadIds.includes(lead.id));
 
   const totalPorFase = filteredLeads.reduce<Record<number, number>>(
     (acc, lead) => {
@@ -155,6 +172,68 @@ export default function Home() {
   const totalReunioesMarcadas = filteredLeads.filter(
     (l) => l.status === "reuniao_marcada"
   ).length;
+
+  const handleToggleLeadSelection = (leadId: string) => {
+    setSelectedLeadIds((current) =>
+      current.includes(leadId)
+        ? current.filter((id) => id !== leadId)
+        : [...current, leadId]
+    );
+    setBulkError(null);
+  };
+
+  const handleSelectAllDisplayed = (checked: boolean) => {
+    if (checked) {
+      setSelectedLeadIds((current) => {
+        const merged = new Set([...current, ...displayedLeads.map((lead) => lead.id)]);
+        return Array.from(merged);
+      });
+      setBulkError(null);
+      return;
+    }
+
+    setSelectedLeadIds((current) =>
+      current.filter((id) => !displayedLeads.some((lead) => lead.id === id))
+    );
+  };
+
+  const handleBulkStatusUpdate = async () => {
+    if (selectedLeadIds.length === 0) return;
+    setBulkLoading(true);
+    setBulkError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const response = await fetch("/api/leads/bulk-status", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: session?.access_token
+            ? `Bearer ${session.access_token}`
+            : "",
+        },
+        body: JSON.stringify({
+          leadIds: selectedLeadIds,
+          status: bulkStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Erro ao atualizar status em lote");
+      }
+
+      setSelectedLeadIds([]);
+      await refreshLeads();
+    } catch (err: any) {
+      setBulkError(err.message || "Erro ao atualizar status em lote");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100">
@@ -347,10 +426,44 @@ export default function Home() {
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white/90 shadow-sm backdrop-blur">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-zinc-50/60 px-4 py-2">
+                <p className="text-[11px] text-zinc-600">
+                  {selectedLeadIds.length} lead(s) selecionado(s)
+                </p>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value as Lead["status"])}
+                    className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-[11px] text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                  >
+                    <option value="em_cadencia">Em cadência</option>
+                    <option value="aguardando">Aguardando</option>
+                    <option value="reuniao_marcada">Agenda marcada</option>
+                    <option value="perdido">Perdido</option>
+                    <option value="novo">Novo</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkStatusUpdate}
+                    disabled={selectedLeadIds.length === 0 || bulkLoading}
+                    className="rounded-md bg-zinc-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+                  >
+                    {bulkLoading ? "Atualizando..." : "Alterar status"}
+                  </button>
+                </div>
+              </div>
               <table className="min-w-full text-left text-xs">
                 <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                   <tr>
-                    <th className="px-4 py-2">Contato feito</th>
+                    <th className="px-4 py-2">
+                      <input
+                        type="checkbox"
+                        checked={allDisplayedSelected}
+                        onChange={(e) => handleSelectAllDisplayed(e.target.checked)}
+                        className="h-3 w-3 cursor-pointer rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                        aria-label="Selecionar todos os leads visíveis"
+                      />
+                    </th>
                     <th className="px-4 py-2">Empresa</th>
                     <th className="px-4 py-2">Contato</th>
                     <th className="px-4 py-2">Status</th>
@@ -362,10 +475,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 text-[11px] text-zinc-800">
-                  {(statusFilter === "com_agenda"
-                    ? [...overdue, ...dueToday, ...upcoming]
-                    : filteredLeads
-                  ).map((lead) => {
+                  {displayedLeads.map((lead) => {
                     const proxima = lead.proxima_acao_em
                       ? new Date(lead.proxima_acao_em).toLocaleString()
                       : "—";
@@ -395,12 +505,12 @@ export default function Home() {
                         <td className="px-4 py-2">
                           <input
                             type="checkbox"
+                            checked={selectedLeadIds.includes(lead.id)}
                             className="h-3 w-3 cursor-pointer rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedLead(lead);
-                              setModalOpen(true);
                             }}
+                            onChange={() => handleToggleLeadSelection(lead.id)}
                           />
                         </td>
                         <td className="px-4 py-2 font-medium text-zinc-900">
@@ -450,6 +560,11 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+            {bulkError && (
+              <div className="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {bulkError}
+              </div>
+            )}
           </div>
         )}
       </main>

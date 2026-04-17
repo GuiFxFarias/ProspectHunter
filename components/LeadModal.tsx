@@ -19,10 +19,18 @@ interface LeadModalProps {
 const RESULTADOS: { value: InteractionResultado; label: string }[] = [
   { value: "nao_atendeu", label: "Não atendeu" },
   { value: "ligar_depois", label: "Ligar depois" },
-  { value: "pedir_email", label: "Pedir e-mail" },
+  { value: "pedir_email", label: "Email enviando" },
   { value: "reuniao_agendada", label: "Reunião agendada" },
   { value: "sem_interesse", label: "Sem interesse" },
 ];
+
+const RESULTADO_LABELS: Record<InteractionResultado, string> = {
+  nao_atendeu: "Não atendeu",
+  ligar_depois: "Ligar depois",
+  pedir_email: "Email enviando",
+  reuniao_agendada: "Reunião agendada",
+  sem_interesse: "Sem interesse",
+};
 
 const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
   { value: "novo", label: "Novo" },
@@ -644,7 +652,9 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-zinc-800">
-                          {item.tipo} · {item.resultado}
+                          {item.tipo} ·{" "}
+                          {RESULTADO_LABELS[item.resultado as InteractionResultado] ??
+                            item.resultado}
                         </span>
                         <span className="text-[10px] text-zinc-800">
                           {new Date(item.created_at).toLocaleString()}
