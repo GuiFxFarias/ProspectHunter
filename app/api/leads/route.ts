@@ -20,6 +20,9 @@ export async function POST(request: Request) {
       produto,
       origem,
       categoria_lead,
+      cnpj,
+      descricao_atividade,
+      dados_complementares,
     } = body as {
       empresa?: string;
       contato_nome?: string;
@@ -28,6 +31,9 @@ export async function POST(request: Request) {
       produto?: string;
       origem?: "SDR" | "Indicacao" | "Prospeccao" | "Rebote";
       categoria_lead?: "novo" | "antigo";
+      cnpj?: string;
+      descricao_atividade?: string;
+      dados_complementares?: string;
     };
 
     if (!empresa || !contato_nome) {
@@ -61,6 +67,9 @@ export async function POST(request: Request) {
       contato_nome,
       telefone: telefone ?? null,
       email: email ?? null,
+      cnpj: cnpj ?? null,
+      descricao_atividade: descricao_atividade ?? null,
+      dados_complementares: dados_complementares ?? null,
       produto: produto ?? null,
       origem: origem ?? "Prospeccao",
       categoria_lead: categoria,

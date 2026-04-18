@@ -6,6 +6,7 @@ import type {
   LeadStatus,
 } from "@/lib/cadence";
 import { supabase } from "@/lib/supabase";
+import { ContactValueList } from "@/components/ContactValueList";
 
 interface LeadModalProps {
   lead: Lead | null;
@@ -80,6 +81,9 @@ export const LeadModal: React.FC<LeadModalProps> = ({
   const [editTelefone, setEditTelefone] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editProduto, setEditProduto] = useState("");
+  const [editCnpj, setEditCnpj] = useState("");
+  const [editDescricaoAtividade, setEditDescricaoAtividade] = useState("");
+  const [editDadosComplementares, setEditDadosComplementares] = useState("");
   const [editOrigem, setEditOrigem] = useState<
     "SDR" | "Indicacao" | "Prospeccao" | "Rebote" | ""
   >("");
@@ -100,6 +104,9 @@ export const LeadModal: React.FC<LeadModalProps> = ({
     setEditTelefone(lead.telefone ?? "");
     setEditEmail(lead.email ?? "");
     setEditProduto(lead.produto ?? "");
+    setEditCnpj(lead.cnpj ?? "");
+    setEditDescricaoAtividade(lead.descricao_atividade ?? "");
+    setEditDadosComplementares(lead.dados_complementares ?? "");
     setEditOrigem(((lead as any).origem as any) ?? "");
     const cat = lead.categoria_lead;
     setEditCategoriaLead(cat === "antigo" || cat === "novo" ? cat : "novo");
@@ -168,6 +175,9 @@ export const LeadModal: React.FC<LeadModalProps> = ({
           telefone: editTelefone,
           email: editEmail,
           produto: editProduto,
+          cnpj: editCnpj,
+          descricao_atividade: editDescricaoAtividade,
+          dados_complementares: editDadosComplementares,
           origem: editOrigem || undefined,
           categoria_lead: editCategoriaLead,
           status: editStatus,
@@ -187,6 +197,9 @@ export const LeadModal: React.FC<LeadModalProps> = ({
         telefone: editTelefone || null,
         email: editEmail || null,
         produto: editProduto || null,
+        cnpj: editCnpj || null,
+        descricao_atividade: editDescricaoAtividade || null,
+        dados_complementares: editDadosComplementares || null,
         status: editStatus,
         ...(editOrigem
           ? { origem: editOrigem as Lead["origem"] }
@@ -347,22 +360,57 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                     className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="font-medium text-zinc-800">Telefone</label>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">CNPJ</label>
                   <input
                     type="text"
-                    value={editTelefone}
-                    onChange={(e) => setEditTelefone(e.target.value)}
+                    value={editCnpj}
+                    onChange={(e) => setEditCnpj(e.target.value)}
                     className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="font-medium text-zinc-800">E-mail</label>
-                  <input
-                    type="email"
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">Telefones</label>
+                  <textarea
+                    value={editTelefone}
+                    onChange={(e) => setEditTelefone(e.target.value)}
+                    rows={3}
+                    className="w-full resize-y rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                    placeholder="Vários: um por linha ou separados por |"
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">E-mails</label>
+                  <textarea
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
-                    className="w-full rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                    rows={3}
+                    className="w-full resize-y rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                    placeholder="Vários: um por linha ou separados por |"
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">
+                    Descrição da atividade
+                  </label>
+                  <textarea
+                    value={editDescricaoAtividade}
+                    onChange={(e) => setEditDescricaoAtividade(e.target.value)}
+                    rows={3}
+                    className="w-full resize-y rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="font-medium text-zinc-800">
+                    Dados complementares (porte, matriz/filial, faturamento…)
+                  </label>
+                  <textarea
+                    value={editDadosComplementares}
+                    onChange={(e) =>
+                      setEditDadosComplementares(e.target.value)
+                    }
+                    rows={2}
+                    className="w-full resize-y rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-900"
                   />
                 </div>
                 <div className="space-y-1 md:col-span-2">
@@ -444,33 +492,47 @@ export const LeadModal: React.FC<LeadModalProps> = ({
               </div>
             ) : (
               <>
-                <p className="mt-1 text-xs text-zinc-600">{lead.empresa}</p>
-                <p className="mt-0.5 text-[11px] text-zinc-500">
-                  {lead.contato_nome}
-                  {lead.email && (
-                    <>
-                      {" · "}
-                      <span className="underline decoration-dotted">
-                        {lead.email}
-                      </span>
-                    </>
-                  )}
-                  {lead.telefone && (
-                    <>
-                      {" · "}
-                      <span>{lead.telefone}</span>
-                    </>
-                  )}
-                  {lead.produto && (
-                    <>
-                      {" · "}
-                      <span className="italic text-zinc-600">
-                        Produto: {lead.produto}
-                      </span>
-                    </>
-                  )}
+                <p className="mt-1 text-xs font-medium text-zinc-900">
+                  {lead.empresa}
                 </p>
-                <p className="mt-1 text-[11px] text-zinc-600">
+                <p className="mt-0.5 text-[11px] text-zinc-600">
+                  {lead.contato_nome}
+                </p>
+                {lead.cnpj && (
+                  <p className="mt-1 text-[11px] text-zinc-600">
+                    <span className="font-medium text-zinc-700">CNPJ:</span>{" "}
+                    {lead.cnpj}
+                  </p>
+                )}
+                <ContactValueList
+                  label="Telefones"
+                  value={lead.telefone}
+                  kind="phone"
+                />
+                <ContactValueList
+                  label="E-mails"
+                  value={lead.email}
+                  kind="email"
+                />
+                {lead.descricao_atividade && (
+                  <p className="mt-2 text-[11px] leading-snug text-zinc-700">
+                    <span className="font-medium text-zinc-800">
+                      Atividade:{" "}
+                    </span>
+                    {lead.descricao_atividade}
+                  </p>
+                )}
+                {lead.dados_complementares && (
+                  <p className="mt-2 whitespace-pre-wrap text-[11px] leading-snug text-zinc-600">
+                    {lead.dados_complementares}
+                  </p>
+                )}
+                {lead.produto && (
+                  <p className="mt-2 text-[11px] italic text-zinc-600">
+                    Produto: {lead.produto}
+                  </p>
+                )}
+                <p className="mt-2 text-[11px] text-zinc-600">
                   {lead.categoria_lead === "antigo" ||
                   lead.categoria_lead === "novo" ? (
                     <>

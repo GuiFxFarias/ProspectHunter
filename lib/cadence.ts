@@ -21,6 +21,12 @@ export interface Lead {
   contato_nome: string;
   telefone: string | null;
   email: string | null;
+  /** CNPJ (importação de bases). */
+  cnpj?: string | null;
+  /** Descrição da atividade (ex.: planilha Receita). */
+  descricao_atividade?: string | null;
+  /** Matriz/filial, porte, faturamento, etc. */
+  dados_complementares?: string | null;
   produto: string | null;
   status: LeadStatus;
   fase_cadencia: number;

@@ -24,6 +24,9 @@ export async function PATCH(
       origem,
       categoria_lead,
       status,
+      cnpj,
+      descricao_atividade,
+      dados_complementares,
     } = body as {
       empresa?: string;
       contato_nome?: string;
@@ -38,6 +41,9 @@ export async function PATCH(
         | "aguardando"
         | "reuniao_marcada"
         | "perdido";
+      cnpj?: string;
+      descricao_atividade?: string;
+      dados_complementares?: string;
     };
 
     const { error } = await supabase
@@ -51,6 +57,13 @@ export async function PATCH(
         ...(origem !== undefined && { origem }),
         ...(categoria_lead !== undefined && { categoria_lead }),
         ...(status !== undefined && { status }),
+        ...(cnpj !== undefined && { cnpj: cnpj || null }),
+        ...(descricao_atividade !== undefined && {
+          descricao_atividade: descricao_atividade || null,
+        }),
+        ...(dados_complementares !== undefined && {
+          dados_complementares: dados_complementares || null,
+        }),
       })
       .eq("id", id);
 
