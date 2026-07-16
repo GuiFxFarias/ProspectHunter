@@ -19,6 +19,13 @@ async function dsRequest(url: string, init: RequestInit) {
   const text = await resp.text();
   let json: any = {};
   try { json = text ? JSON.parse(text) : {}; } catch { json = {}; }
+  if (resp.status >= 300 && resp.status < 400) {
+    const location = resp.headers.get("location");
+    throw new Error(
+      `Data Stone redirecionou (${resp.status}) para "${location ?? "?"}". ` +
+      `Verifique DATASTONE_BASE_URL (a base atual é "${BASE}") — provavelmente falta ou sobra o sufixo "/v1".`
+    );
+  }
   if (!resp.ok) {
     const desc = json?.error?.description ?? json?.detail ?? text.slice(0, 200);
     throw new Error(`Data Stone ${resp.status}: ${desc}`);

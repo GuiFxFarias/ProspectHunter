@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { detectVertical, guiaPorCargo } from "@/lib/approach";
 
 interface Match {
   cnpj: string | number;
@@ -80,9 +81,16 @@ export default function ProspectPage() {
   const [loading, setLoading] = useState<string>("");
   const [erro, setErro] = useState<string>("");
   const [msg, setMsg] = useState<string>("");
+  const [guiaAberto, setGuiaAberto] = useState<string | null>(null);
 
   const buscar = async () => {
     if (!razao.trim()) return;
+    const digits = razao.replace(/\D/g, "");
+    if (digits.length === 14) {
+      setMatches([]);
+      await abrir(digits);
+      return;
+    }
     setErro(""); setMsg(""); setEmpresa(null); setMatches([]); setLoading("busca");
     try {
       const data = await api<Match[]>("/api/prospect/search", { razao_social: razao, uf: uf || undefined });
@@ -154,8 +162,10 @@ export default function ProspectPage() {
     } catch (e: any) { setErro(e.message); } finally { setLoading(""); }
   };
 
-  const PessoaCard = ({ p, tag }: { p: Pessoa; tag: string }) => {
+  const PessoaCard = ({ p, tag, id }: { p: Pessoa; tag: string; id: string }) => {
     const ct = p.cpf ? contatos[p.cpf] : undefined;
+    const g = guiaPorCargo(p.cargo);
+    const aberto = guiaAberto === id;
     return (
       <div className="rounded-md border border-zinc-200 bg-white px-3 py-2 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -164,15 +174,23 @@ export default function ProspectPage() {
             <span className="font-medium text-zinc-900">{p.nome}</span>
             <span className="text-zinc-500"> · {p.cargo}</span>
           </p>
-          {p.cpf && !ct && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            {p.cpf && !ct && (
+              <button
+                onClick={() => pegarCelular(p.cpf!)}
+                disabled={loading === "cpf:" + p.cpf}
+                className="inline-flex items-center gap-1 rounded border border-zinc-300 px-2 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {loading === "cpf:" + p.cpf ? <Spinner className="h-3 w-3" /> : "📱"} Pegar celular
+              </button>
+            )}
             <button
-              onClick={() => pegarCelular(p.cpf!)}
-              disabled={loading === "cpf:" + p.cpf}
-              className="inline-flex shrink-0 items-center gap-1 rounded border border-zinc-300 px-2 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+              onClick={() => setGuiaAberto(aberto ? null : id)}
+              className="inline-flex items-center rounded border border-indigo-200 px-2 py-1 text-[10px] font-medium text-indigo-700 hover:bg-indigo-50"
             >
-              {loading === "cpf:" + p.cpf ? <Spinner className="h-3 w-3" /> : "📱"} Pegar celular
+              {aberto ? "Fechar" : "🎯 Abordagem"}
             </button>
-          )}
+          </div>
         </div>
         {ct && (
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
@@ -194,6 +212,26 @@ export default function ProspectPage() {
             )}
           </div>
         )}
+        {aberto && (
+          <div className="mt-2 rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-[11px] leading-snug text-zinc-700">
+            <p className="font-semibold text-indigo-800">{g.persona}</p>
+            <p className="mt-1">
+              <span className="font-medium">Abertura:</span> “{g.abertura}”
+            </p>
+            <p className="mt-1 font-medium">Perguntas (qualificar):</p>
+            <ul className="ml-4 list-disc space-y-0.5">
+              {g.perguntas.map((q, i) => (
+                <li key={i}>{q}</li>
+              ))}
+            </ul>
+            <p className="mt-1">
+              <span className="font-medium">Gancho:</span> {g.gancho}
+            </p>
+            <p className="mt-1">
+              <span className="font-medium text-emerald-700">Agendar:</span> “{g.cta}”
+            </p>
+          </div>
+        )}
       </div>
     );
   };
@@ -207,7 +245,7 @@ export default function ProspectPage() {
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">Prospectar empresa</h1>
             <p className="text-xs text-zinc-500">
-              Busque por razão social e crie um lead com decisores e gerentes.
+              Busque por razão social, nome ou CNPJ e crie um lead com decisores e gerentes.
             </p>
           </div>
           <Link
@@ -224,13 +262,13 @@ export default function ProspectPage() {
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-[200px] flex-1 space-y-1">
               <label className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                Razão social ou nome
+                Razão social, nome ou CNPJ
               </label>
               <input
                 value={razao}
                 onChange={(e) => setRazao(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && buscar()}
-                placeholder="ex.: Agrobiotech"
+                placeholder="ex.: Agrobiotech ou 12.345.678/0001-90"
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
               />
             </div>
@@ -244,18 +282,22 @@ export default function ProspectPage() {
                 onKeyDown={(e) => e.key === "Enter" && buscar()}
                 placeholder="opcional"
                 maxLength={2}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm uppercase text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                disabled={razao.replace(/\D/g, "").length === 14}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm uppercase text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:bg-zinc-50 disabled:text-zinc-400"
               />
             </div>
             <button
               onClick={buscar}
-              disabled={loading === "busca" || !razao.trim()}
+              disabled={!!loading || !razao.trim()}
               className="inline-flex items-center gap-2 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50"
             >
-              {loading === "busca" && <Spinner className="h-4 w-4" />}
-              Buscar
+              {(loading === "busca" || loading === "empresa") && <Spinner className="h-4 w-4" />}
+              {razao.replace(/\D/g, "").length === 14 ? "Consultar CNPJ" : "Buscar"}
             </button>
           </div>
+          <p className="mt-1.5 text-[10px] text-zinc-400">
+            Digite um nome para ver várias opções, ou um CNPJ (14 dígitos) para ir direto aos dados da empresa.
+          </p>
         </div>
 
         {erro && (
@@ -339,13 +381,28 @@ export default function ProspectPage() {
               </button>
             </div>
 
+            <div className="mt-3 rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2">
+              <p className="text-[11px] font-semibold text-indigo-800">
+                🎯 Como abordar — {detectVertical(empresa.descricao_atividade).label}
+              </p>
+              <p className="mt-0.5 text-[11px] text-zinc-700">
+                {detectVertical(empresa.descricao_atividade).angulo}
+              </p>
+              <p className="mt-1 text-[10px] text-zinc-500">
+                Objetivo: qualificar (dor · momento · quem decide) e agendar um diagnóstico de 30 min.
+                Clique em “🎯 Abordagem” em cada pessoa para o roteiro da persona.
+              </p>
+            </div>
+
             <div className="mt-4 space-y-1.5">
               <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                 👑 Decisores
               </h3>
               <div className="space-y-1.5">
                 {empresa.decisores.length > 0 ? (
-                  empresa.decisores.map((d, i) => <PessoaCard key={i} p={d} tag="👑" />)
+                  empresa.decisores.map((d, i) => (
+                    <PessoaCard key={i} p={d} tag="👑" id={"d-" + i} />
+                  ))
                 ) : (
                   <p className="text-[11px] text-zinc-400">Nenhum decisor mapeado.</p>
                 )}
@@ -358,7 +415,9 @@ export default function ProspectPage() {
                   👔 Gerentes / Supervisores
                 </h3>
                 <div className="space-y-1.5">
-                  {empresa.gerentes.map((g, i) => <PessoaCard key={i} p={g} tag="👔" />)}
+                  {empresa.gerentes.map((g, i) => (
+                    <PessoaCard key={i} p={g} tag="👔" id={"g-" + i} />
+                  ))}
                 </div>
               </div>
             )}
