@@ -7,6 +7,7 @@ import type {
 } from "@/lib/cadence";
 import { supabase } from "@/lib/supabase";
 import { ContactValueList } from "@/components/ContactValueList";
+import { parseComplementares, type PessoaContato } from "@/lib/complementaryInfo";
 
 interface LeadModalProps {
   lead: Lead | null;
@@ -45,6 +46,139 @@ const CATEGORIA_OPTIONS: { value: LeadCategoria; label: string }[] = [
   { value: "novo", label: "Lead novo" },
   { value: "antigo", label: "Lead antigo" },
 ];
+
+const PersonCard: React.FC<{ pessoa: PessoaContato }> = ({ pessoa }) => (
+  <div className="rounded-md border border-zinc-200 bg-white px-2 py-1.5">
+    <p className="text-[11px] font-medium text-zinc-800">
+      {pessoa.nome}
+      {pessoa.cargo && (
+        <span className="ml-1 font-normal text-zinc-500">
+          — {pessoa.cargo}
+        </span>
+      )}
+    </p>
+    {(pessoa.telefones.length > 0 || pessoa.email) && (
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
+        {pessoa.telefones.map((tel, i) => (
+          <a
+            key={`${tel}-${i}`}
+            href={`tel:${tel.replace(/[^\d+]/g, "")}`}
+            className="text-zinc-700 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-800"
+          >
+            {tel}
+          </a>
+        ))}
+        {pessoa.email && (
+          <a
+            href={`mailto:${pessoa.email}`}
+            className="break-all text-zinc-700 underline decoration-zinc-300 underline-offset-2 hover:decoration-zinc-800"
+          >
+            {pessoa.email}
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+);
+
+const ComplementaryInfo: React.FC<{ dados: string }> = ({ dados }) => {
+  const parsed = parseComplementares(dados);
+  const hasStructure =
+    parsed.secoes.length > 0 ||
+    parsed.tambem.length > 0 ||
+    parsed.empresa ||
+    parsed.angulo;
+
+  if (!hasStructure) {
+    return (
+      <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
+        <ul className="space-y-1 text-[11px] leading-snug">
+          {dados.split(" | ").map((seg, i) => {
+            const s = seg.trim();
+            if (!s) return null;
+            return (
+              <li key={i} className="text-zinc-600">
+                {s}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5">
+      {parsed.infoGeral.length > 0 && (
+        <ul className="space-y-0.5 text-[11px] leading-snug text-zinc-600">
+          {parsed.infoGeral.map((s, i) => (
+            <li key={i}>{s}</li>
+          ))}
+        </ul>
+      )}
+
+      {parsed.secoes.map((secao, i) => (
+        <div key={i} className="space-y-1.5">
+          <p className="flex items-center gap-1 text-[11px] font-semibold text-zinc-800">
+            {secao.icon && <span>{secao.icon}</span>}
+            {secao.titulo}
+          </p>
+          <div className="space-y-1.5">
+            {secao.pessoas.map((p, j) => (
+              <PersonCard key={j} pessoa={p} />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {parsed.empresa &&
+        (parsed.empresa.telefones.length > 0 || parsed.empresa.email) && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-semibold text-zinc-800">
+              📞 Empresa
+            </p>
+            <PersonCard
+              pessoa={{
+                nome: "Contato geral",
+                telefones: parsed.empresa.telefones,
+                email: parsed.empresa.email,
+              }}
+            />
+          </div>
+        )}
+
+      {parsed.tambem.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold text-zinc-800">
+            Também na empresa
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {parsed.tambem.map((p, i) => (
+              <span
+                key={i}
+                className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-600"
+              >
+                {p.nome}
+                {p.cargo ? ` · ${p.cargo}` : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {parsed.angulo && (
+        <div className="space-y-0.5">
+          <p className="text-[11px] font-semibold text-zinc-800">
+            {parsed.angulo.titulo}
+          </p>
+          <p className="text-[11px] italic leading-snug text-zinc-600">
+            {parsed.angulo.texto}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const LeadModal: React.FC<LeadModalProps> = ({
   lead,
@@ -523,9 +657,7 @@ export const LeadModal: React.FC<LeadModalProps> = ({
                   </p>
                 )}
                 {lead.dados_complementares && (
-                  <p className="mt-2 whitespace-pre-wrap text-[11px] leading-snug text-zinc-600">
-                    {lead.dados_complementares}
-                  </p>
+                  <ComplementaryInfo dados={lead.dados_complementares} />
                 )}
                 {lead.produto && (
                   <p className="mt-2 text-[11px] italic text-zinc-600">

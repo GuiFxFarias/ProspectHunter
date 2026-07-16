@@ -25,10 +25,18 @@ export async function getAccessToken(): Promise<string> {
   if (cachedToken && now < expiresAt - 60) return cachedToken;
 
   const supabase = getClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: config.prospectorEmail,
-    password: config.prospectorPassword,
-  });
+  let result: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
+  try {
+    result = await supabase.auth.signInWithPassword({
+      email: config.prospectorEmail,
+      password: config.prospectorPassword,
+    });
+  } catch (e) {
+    throw new Error(
+      `Supabase signIn lançou exceção (url=${config.supabaseUrl}): ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+  const { data, error } = result;
   if (error || !data.session) {
     throw new Error(`Falha ao autenticar no Supabase: ${error?.message ?? "sem sessão"}`);
   }

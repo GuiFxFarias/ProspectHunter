@@ -23,14 +23,22 @@ export type InteractionResultado =
 
 async function post(path: string, body: unknown) {
   const token = await getAccessToken();
-  const resp = await fetch(`${config.appBaseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const url = `${config.appBaseUrl}${path}`;
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    throw new Error(
+      `Falha de rede no POST ${url}: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
   const json = await resp.json().catch(() => ({}));
   if (!resp.ok) {
     throw new Error(`POST ${path} → ${resp.status}: ${JSON.stringify(json)}`);
@@ -55,6 +63,44 @@ export async function logInteraction(args: {
   proximaAcaoEm?: string;
 }) {
   return post("/api/interactions", args);
+}
+
+/** Apaga um lead existente (por CNPJ ou nome) via DELETE /api/leads/[id]. */
+export async function deleteLead(args: { cnpj?: string; empresa?: string }) {
+  const leads = await findLead(args);
+  const lead: any = leads[0];
+  if (!lead) return { apagado: false, motivo: "não encontrado" };
+  const token = await getAccessToken();
+  const url = `${config.appBaseUrl}/api/leads/${lead.id}`;
+  const resp = await fetch(url, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(`DELETE ${url} → ${resp.status}: ${JSON.stringify(json)}`);
+  return { apagado: true, empresa: lead.empresa, cnpj: lead.cnpj };
+}
+
+/** Atualiza um lead existente (localizado pelo CNPJ) via PATCH /api/leads/[id]. */
+export async function updateLeadByCnpj(cnpj: string, patch: Record<string, unknown>) {
+  const leads = await findLead({ cnpj });
+  const lead: any = leads[0];
+  if (!lead) throw new Error(`Lead não encontrado para CNPJ ${cnpj}`);
+  const token = await getAccessToken();
+  const url = `${config.appBaseUrl}/api/leads/${lead.id}`;
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(patch),
+    });
+  } catch (e) {
+    throw new Error(`Falha de rede no PATCH ${url}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(`PATCH ${url} → ${resp.status}: ${JSON.stringify(json)}`);
+  return { id: lead.id, ...json };
 }
 
 /**
