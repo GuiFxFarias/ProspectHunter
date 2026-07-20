@@ -63,6 +63,7 @@ export default function Home() {
   const [bulkStatus, setBulkStatus] = useState<Lead['status']>('em_cadencia');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
   const loadLeads = async () => {
     setLoading(true);
@@ -235,6 +236,48 @@ export default function Home() {
       setBulkError(err.message || 'Erro ao atualizar status em lote');
     } finally {
       setBulkLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeadIds.length === 0) return;
+    if (
+      !window.confirm(
+        `Tem certeza que deseja excluir ${selectedLeadIds.length} lead(s)? Essa ação não pode ser desfeita.`,
+      )
+    )
+      return;
+
+    setBulkDeleteLoading(true);
+    setBulkError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const response = await fetch('/api/leads/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: session?.access_token
+            ? `Bearer ${session.access_token}`
+            : '',
+        },
+        body: JSON.stringify({ leadIds: selectedLeadIds }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Erro ao excluir leads em lote');
+      }
+
+      setSelectedLeadIds([]);
+      await refreshLeads();
+    } catch (err: any) {
+      setBulkError(err.message || 'Erro ao excluir leads em lote');
+    } finally {
+      setBulkDeleteLoading(false);
     }
   };
 
@@ -458,6 +501,14 @@ export default function Home() {
                     className='rounded-md bg-zinc-900 px-2 py-1 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:opacity-50'
                   >
                     {bulkLoading ? 'Atualizando...' : 'Alterar status'}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleBulkDelete}
+                    disabled={selectedLeadIds.length === 0 || bulkDeleteLoading}
+                    className='rounded-md bg-red-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-red-700 disabled:opacity-50'
+                  >
+                    {bulkDeleteLoading ? 'Excluindo...' : 'Excluir selecionados'}
                   </button>
                 </div>
               </div>
